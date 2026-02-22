@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { StepIndicator } from "@dealscope/ui";
-import { useWizard } from "./_context";
+import { useWizard } from "../../components/WizardContext";
 import { DocumentUploader } from "../../components/DocumentUploader";
 import { ExtractionReview } from "../../components/ExtractionReview";
 import type {

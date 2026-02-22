@@ -8,7 +8,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { StepIndicator, CurrencyInput } from "@dealscope/ui";
-import { useWizard } from "./_context";
+import { useWizard } from "../../components/WizardContext";
 import {
   calculateMonthlyPayment,
   FINANCING_DEFAULTS,

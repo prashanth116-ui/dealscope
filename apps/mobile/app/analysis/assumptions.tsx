@@ -8,7 +8,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { StepIndicator, CurrencyInput } from "@dealscope/ui";
-import { useWizard } from "./_context";
+import { useWizard } from "../../components/WizardContext";
 import { calculateIncome, PROJECTION_DEFAULTS } from "@dealscope/core";
 
 const STEP_LABELS = [

@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { View, Text, StyleSheet, ScrollView, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { StepIndicator, MetricCard } from "@dealscope/ui";
-import { useWizard } from "./_context";
+import { useWizard } from "../../components/WizardContext";
 import { analyzeProperty } from "@dealscope/core";
 import type { AnalysisInput, Property, Range } from "@dealscope/core";
 import { ProjectionTable } from "../../components/ProjectionTable";

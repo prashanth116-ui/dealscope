@@ -1,5 +1,5 @@
 import { Stack } from "expo-router";
-import { WizardProvider } from "./_context";
+import { WizardProvider } from "../../components/WizardContext";
 
 export default function AnalysisLayout() {
   return (

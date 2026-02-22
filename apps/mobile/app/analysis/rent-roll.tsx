@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import {
   View,
   Text,
@@ -9,7 +10,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { StepIndicator } from "@dealscope/ui";
-import { useWizard } from "./_context";
+import { useWizard } from "../../components/WizardContext";
 import { UnitRow } from "../../components/UnitRow";
 import { calculateIncome } from "@dealscope/core";
 import type { Unit } from "@dealscope/core";
@@ -48,6 +49,16 @@ export default function RentRollScreen() {
       : Array.from({ length: numUnits }, (_, i) =>
           rentRoll.units[i] ?? makeEmptyUnit(i)
         );
+
+  // Sync generated units into state on first mount
+  useEffect(() => {
+    if (rentRoll.units.length !== numUnits && numUnits > 0) {
+      dispatch({
+        type: "SET_RENT_ROLL",
+        rentRoll: { ...rentRoll, units },
+      });
+    }
+  }, [numUnits]);
 
   const updateUnit = (index: number, updated: Unit) => {
     const newUnits = [...units];

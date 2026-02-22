@@ -9,7 +9,7 @@ import {
 import { useRouter } from "expo-router";
 import { StepIndicator } from "@dealscope/ui";
 import { CurrencyInput } from "@dealscope/ui";
-import { useWizard } from "./_context";
+import { useWizard } from "../../components/WizardContext";
 import type { PropertyType } from "@dealscope/core";
 
 const STEP_LABELS = [
