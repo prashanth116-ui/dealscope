@@ -10,7 +10,7 @@ export default function RootLayout() {
       }}
     >
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="analysis/new" options={{ title: "New Analysis" }} />
+      <Stack.Screen name="analysis" options={{ headerShown: false }} />
     </Stack>
   );
 }
