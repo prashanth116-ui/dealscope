@@ -5,6 +5,7 @@ import type {
   Expenses,
   Financing,
   ValueAddAssumptions,
+  AnalysisInput,
 } from "@dealscope/core";
 import type { AnalysisResults } from "@dealscope/core";
 import {
@@ -16,6 +17,7 @@ import {
 
 export interface WizardState {
   currentStep: number;
+  analysisId: string | null;
   property: Partial<Property>;
   rentRoll: RentRoll;
   expenses: Expenses;
@@ -37,6 +39,7 @@ const emptyOtherIncome = {
 
 const initialState: WizardState = {
   currentStep: 1,
+  analysisId: null,
   property: {
     type: "multifamily",
     photos: [],
@@ -70,6 +73,7 @@ const initialState: WizardState = {
 
 type WizardAction =
   | { type: "SET_STEP"; step: number }
+  | { type: "SET_ANALYSIS_ID"; analysisId: string }
   | { type: "SET_PROPERTY"; property: Partial<Property> }
   | { type: "SET_RENT_ROLL"; rentRoll: RentRoll }
   | { type: "SET_EXPENSES"; expenses: Expenses }
@@ -78,12 +82,15 @@ type WizardAction =
   | { type: "SET_HOLD_PERIOD"; holdPeriod: number }
   | { type: "SET_EXIT_CAP_RATE"; exitCapRate: number }
   | { type: "SET_RESULTS"; results: AnalysisResults }
+  | { type: "LOAD_ANALYSIS"; id: string; input: AnalysisInput; results: AnalysisResults }
   | { type: "RESET" };
 
 function wizardReducer(state: WizardState, action: WizardAction): WizardState {
   switch (action.type) {
     case "SET_STEP":
       return { ...state, currentStep: action.step };
+    case "SET_ANALYSIS_ID":
+      return { ...state, analysisId: action.analysisId };
     case "SET_PROPERTY":
       return { ...state, property: { ...state.property, ...action.property } };
     case "SET_RENT_ROLL":
@@ -100,6 +107,19 @@ function wizardReducer(state: WizardState, action: WizardAction): WizardState {
       return { ...state, exitCapRate: action.exitCapRate };
     case "SET_RESULTS":
       return { ...state, results: action.results };
+    case "LOAD_ANALYSIS":
+      return {
+        currentStep: 6,
+        analysisId: action.id,
+        property: action.input.property,
+        rentRoll: action.input.rentRoll,
+        expenses: action.input.expenses,
+        financing: action.input.financing,
+        valueAdd: action.input.valueAdd ?? initialState.valueAdd,
+        holdPeriod: action.input.holdPeriod,
+        exitCapRate: action.input.exitCapRate ?? initialState.exitCapRate,
+        results: action.results,
+      };
     case "RESET":
       return initialState;
     default:

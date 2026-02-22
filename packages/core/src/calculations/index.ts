@@ -13,3 +13,4 @@ export {
 } from "./returns";
 export { calculateProjections, buildIRRCashFlows } from "./projections";
 export { analyzeProperty } from "./analyzer";
+export { applyScenario, runSensitivity } from "./scenario";

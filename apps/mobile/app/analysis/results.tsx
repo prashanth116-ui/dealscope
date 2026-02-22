@@ -1,11 +1,14 @@
-import { useEffect } from "react";
-import { View, Text, StyleSheet, ScrollView, Pressable } from "react-native";
-import { useRouter } from "expo-router";
+import { useEffect, useState, useCallback } from "react";
+import { View, Text, StyleSheet, ScrollView, Pressable, Alert, ActivityIndicator } from "react-native";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { StepIndicator, MetricCard } from "@dealscope/ui";
 import { useWizard } from "../../components/WizardContext";
+import { useApi } from "../../hooks/useApi";
+import { useAuth } from "../../components/AuthContext";
 import { analyzeProperty } from "@dealscope/core";
 import type { AnalysisInput, Property, Range } from "@dealscope/core";
 import { ProjectionTable } from "../../components/ProjectionTable";
+import { exportPdf } from "../../components/ExportPdf";
 
 const STEP_LABELS = [
   "Property Basics",
@@ -56,9 +59,34 @@ function RangeCards({
 export default function ResultsScreen() {
   const { state, dispatch } = useWizard();
   const router = useRouter();
+  const params = useLocalSearchParams<{ loadId?: string }>();
+  const api = useApi();
+  const { isAuthenticated } = useAuth();
+  const [saving, setSaving] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  // Run analysis on mount
+  // Load saved analysis if navigated with loadId
   useEffect(() => {
+    if (params.loadId && !state.analysisId) {
+      (async () => {
+        try {
+          const saved = await api.getAnalysis(params.loadId!);
+          dispatch({
+            type: "LOAD_ANALYSIS",
+            id: saved.id,
+            input: saved.input,
+            results: saved.results,
+          });
+        } catch (err) {
+          setLoadError(err instanceof Error ? err.message : "Failed to load analysis");
+        }
+      })();
+    }
+  }, [params.loadId]);
+
+  // Run analysis on mount (for new analyses from wizard)
+  useEffect(() => {
+    if (params.loadId) return; // Skip if loading from API
     const property = state.property as Property;
     if (!property.address || !property.units) return;
 
@@ -78,10 +106,24 @@ export default function ResultsScreen() {
 
   const r = state.results;
 
+  if (loadError) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.errorText}>{loadError}</Text>
+        <Pressable style={styles.backButton} onPress={() => router.replace("/(tabs)")}>
+          <Text style={styles.backButtonText}>Back to Dashboard</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
   if (!r) {
     return (
       <View style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>Crunching numbers...</Text>
+        <ActivityIndicator size="large" color="#003366" />
+        <Text style={styles.loadingText}>
+          {params.loadId ? "Loading analysis..." : "Crunching numbers..."}
+        </Text>
       </View>
     );
   }
@@ -279,13 +321,71 @@ export default function ResultsScreen() {
 
       {/* Action Buttons */}
       <View style={styles.actionsRow}>
-        <Pressable style={styles.actionButton}>
-          <Text style={styles.actionButtonText}>Save Analysis</Text>
+        <Pressable
+          style={[styles.actionButton, saving && styles.actionButtonDisabled]}
+          onPress={async () => {
+            if (!isAuthenticated) {
+              Alert.alert("Sign In Required", "Please sign in to save analyses.", [
+                { text: "OK" },
+              ]);
+              return;
+            }
+            setSaving(true);
+            try {
+              const input: AnalysisInput = {
+                property: state.property as Property,
+                rentRoll: state.rentRoll,
+                expenses: state.expenses,
+                financing: state.financing,
+                valueAdd: state.valueAdd,
+                holdPeriod: state.holdPeriod,
+                exitCapRate: state.exitCapRate,
+              };
+              if (state.analysisId) {
+                await api.updateAnalysis(state.analysisId, input);
+                Alert.alert("Updated", "Analysis updated successfully.");
+              } else {
+                const { id } = await api.createAnalysis(input);
+                dispatch({ type: "SET_ANALYSIS_ID", analysisId: id });
+                Alert.alert("Saved", "Analysis saved successfully.", [
+                  { text: "Dashboard", onPress: () => router.replace("/(tabs)") },
+                  { text: "Stay Here" },
+                ]);
+              }
+            } catch (err) {
+              const message = err instanceof Error ? err.message : "Save failed";
+              Alert.alert("Error", message);
+            } finally {
+              setSaving(false);
+            }
+          }}
+          disabled={saving}
+        >
+          {saving ? (
+            <ActivityIndicator size="small" color="#003366" />
+          ) : (
+            <Text style={styles.actionButtonText}>
+              {state.analysisId ? "Update" : "Save Analysis"}
+            </Text>
+          )}
         </Pressable>
-        <Pressable style={styles.actionButton}>
+        <Pressable
+          style={styles.actionButton}
+          onPress={() => router.push("/analysis/scenarios")}
+        >
           <Text style={styles.actionButtonText}>Run Scenario</Text>
         </Pressable>
-        <Pressable style={styles.actionButton}>
+        <Pressable
+          style={styles.actionButton}
+          onPress={() =>
+            exportPdf({
+              property: state.property as Property,
+              financing: state.financing,
+              holdPeriod: state.holdPeriod,
+              results: r,
+            })
+          }
+        >
           <Text style={styles.actionButtonText}>Export PDF</Text>
         </Pressable>
       </View>
@@ -308,7 +408,8 @@ export default function ResultsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff", padding: 20 },
   loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
-  loadingText: { fontSize: 16, color: "#666" },
+  loadingText: { fontSize: 16, color: "#666", marginTop: 12 },
+  errorText: { fontSize: 14, color: "#c00", textAlign: "center", marginBottom: 16 },
   sectionTitle: {
     fontSize: 18,
     fontWeight: "700",
@@ -396,6 +497,7 @@ const styles = StyleSheet.create({
     borderColor: "#003366",
     alignItems: "center",
   },
+  actionButtonDisabled: { opacity: 0.5 },
   actionButtonText: { color: "#003366", fontSize: 13, fontWeight: "600" },
   navRow: { flexDirection: "row", gap: 12, marginTop: 16, marginBottom: 40 },
   backButton: {

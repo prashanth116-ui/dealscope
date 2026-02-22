@@ -8,7 +8,10 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
-    "@dealscope/core": "workspace:*"
+    "@dealscope/core": "workspace:*",
+    "@dealscope/scrapers": "workspace:*",
+    "@aws-sdk/client-dynamodb": "^3.600.0",
+    "@aws-sdk/util-dynamodb": "^3.600.0"
   },
   "devDependencies": {
     "@types/aws-lambda": "^8.10.0",

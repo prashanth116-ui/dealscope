@@ -18,6 +18,7 @@ export default function AnalysisLayout() {
         <Stack.Screen name="assumptions" options={{ title: "Assumptions" }} />
         <Stack.Screen name="results" options={{ title: "Results" }} />
         <Stack.Screen name="upload" options={{ title: "Upload Document" }} />
+        <Stack.Screen name="scenarios" options={{ title: "Scenarios" }} />
       </Stack>
     </WizardProvider>
   );

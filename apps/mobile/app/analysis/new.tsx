@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   View,
   Text,
@@ -5,12 +6,14 @@ import {
   TextInput,
   ScrollView,
   Pressable,
+  ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { StepIndicator } from "@dealscope/ui";
 import { CurrencyInput } from "@dealscope/ui";
 import { useWizard } from "../../components/WizardContext";
-import type { PropertyType } from "@dealscope/core";
+import { FetchedDataCard } from "../../components/FetchedDataCard";
+import type { PropertyType, PropertyLookupResult } from "@dealscope/core";
 
 const STEP_LABELS = [
   "Property Basics",
@@ -29,10 +32,17 @@ const PROPERTY_TYPES: { label: string; value: PropertyType }[] = [
   { label: "Mixed Use", value: "mixed" },
 ];
 
+// TODO: Replace with real API URL from environment/config
+const API_BASE = process.env.EXPO_PUBLIC_API_URL ?? "https://api.dealscope.app";
+
 export default function NewAnalysisScreen() {
   const { state, dispatch } = useWizard();
   const router = useRouter();
   const p = state.property;
+
+  const [fetchedData, setFetchedData] = useState<PropertyLookupResult | null>(null);
+  const [fetching, setFetching] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   const setField = (field: string, value: string | number) => {
     dispatch({ type: "SET_PROPERTY", property: { [field]: value } });
@@ -53,6 +63,43 @@ export default function NewAnalysisScreen() {
     p.units > 0 &&
     p.askingPrice &&
     p.askingPrice > 0;
+
+  const canFetch = p.address?.zip && p.address.zip.length === 5;
+
+  const handleFetchData = async () => {
+    if (!canFetch) return;
+    setFetching(true);
+    setFetchError(null);
+
+    try {
+      const res = await fetch(`${API_BASE}/lookup`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ zip: p.address!.zip }),
+      });
+
+      if (!res.ok) throw new Error(`API error: ${res.status}`);
+
+      const data: PropertyLookupResult = await res.json();
+      setFetchedData(data);
+
+      // Auto-fill mortgage rate into financing
+      if (data.mortgageRate.rate > 0) {
+        dispatch({
+          type: "SET_FINANCING",
+          financing: {
+            ...state.financing,
+            interestRate: data.mortgageRate.rate,
+          },
+        });
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to fetch data";
+      setFetchError(message);
+    } finally {
+      setFetching(false);
+    }
+  };
 
   const handleContinue = () => {
     if (!canContinue) return;
@@ -141,6 +188,30 @@ export default function NewAnalysisScreen() {
           />
         </View>
       </View>
+
+      {/* Fetch Data Button */}
+      <Pressable
+        style={[styles.fetchButton, !canFetch && styles.fetchButtonDisabled]}
+        onPress={handleFetchData}
+        disabled={!canFetch || fetching}
+      >
+        {fetching ? (
+          <View style={styles.fetchingRow}>
+            <ActivityIndicator size="small" color="#fff" />
+            <Text style={styles.fetchButtonText}>
+              Fetching data for ZIP {p.address?.zip}...
+            </Text>
+          </View>
+        ) : (
+          <Text style={styles.fetchButtonText}>Fetch Property Data</Text>
+        )}
+      </Pressable>
+
+      {fetchError && (
+        <Text style={styles.errorText}>{fetchError}</Text>
+      )}
+
+      {fetchedData && <FetchedDataCard data={fetchedData} />}
 
       <Text style={styles.label}>Number of Units</Text>
       <TextInput
@@ -232,6 +303,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   uploadText: { color: "#003366", fontSize: 14, fontWeight: "500" },
+  fetchButton: {
+    backgroundColor: "#1a6b3c",
+    padding: 14,
+    borderRadius: 8,
+    alignItems: "center",
+    marginTop: 16,
+  },
+  fetchButtonDisabled: { backgroundColor: "#99bbaa" },
+  fetchButtonText: { color: "#fff", fontSize: 14, fontWeight: "600" },
+  fetchingRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  errorText: { color: "#c00", fontSize: 13, marginTop: 8 },
   button: {
     backgroundColor: "#003366",
     padding: 16,

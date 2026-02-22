@@ -1,4 +1,28 @@
-import type { AnalysisInput, AnalysisResults } from "@dealscope/core";
+import type { AnalysisInput, AnalysisResults, PropertyLookupResult } from "@dealscope/core";
+
+export type DealStatus = "Analyzing" | "Offered" | "Under Contract" | "Closed" | "Passed";
+
+export interface AnalysisSummary {
+  id: string;
+  address: string;
+  units: number;
+  askingPrice: number;
+  capRate: number;
+  cashOnCash: number;
+  monthlyCashFlow: number;
+  status: DealStatus;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface SavedAnalysis {
+  id: string;
+  input: AnalysisInput;
+  results: AnalysisResults;
+  status: DealStatus;
+  createdAt: string;
+  updatedAt?: string;
+}
 
 export interface ClientConfig {
   baseUrl: string;
@@ -44,12 +68,27 @@ export class DealScopeClient {
     });
   }
 
-  async getAnalysis(id: string): Promise<AnalysisResults> {
+  async getAnalysis(id: string): Promise<SavedAnalysis> {
     return this.request(`/analyses/${id}`);
   }
 
-  async listAnalyses(): Promise<{ id: string; address: string; createdAt: string }[]> {
-    return this.request("/analyses");
+  async listAnalyses(status?: DealStatus): Promise<AnalysisSummary[]> {
+    const query = status ? `?status=${encodeURIComponent(status)}` : "";
+    return this.request(`/analyses${query}`);
+  }
+
+  async updateAnalysis(id: string, input: AnalysisInput): Promise<void> {
+    await this.request(`/analyses/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(input),
+    });
+  }
+
+  async updateStatus(id: string, status: DealStatus): Promise<void> {
+    await this.request(`/analyses/${id}/status`, {
+      method: "PUT",
+      body: JSON.stringify({ status }),
+    });
   }
 
   async deleteAnalysis(id: string): Promise<void> {
@@ -57,6 +96,35 @@ export class DealScopeClient {
   }
 
   // --- Data Lookup ---
+
+  async lookupByZip(zip: string, lat?: number, lng?: number): Promise<PropertyLookupResult> {
+    return this.request("/lookup", {
+      method: "POST",
+      body: JSON.stringify({ zip, lat, lng }),
+    });
+  }
+
+  async getMortgageRate(): Promise<{ rate: number; date: string }> {
+    return this.request("/data/mortgage-rate");
+  }
+
+  async getFairMarketRent(zip: string): Promise<Record<string, number>> {
+    return this.request(`/data/fair-market-rent?zip=${zip}`);
+  }
+
+  async getDemographics(zip: string): Promise<Record<string, number>> {
+    return this.request(`/data/demographics?zip=${zip}`);
+  }
+
+  async getFloodZone(lat: number, lng: number): Promise<{ zone: string; sfha: boolean }> {
+    return this.request(`/data/flood-zone?lat=${lat}&lng=${lng}`);
+  }
+
+  async getUnemployment(zip: string): Promise<{ rate: number; period: string }> {
+    return this.request(`/data/unemployment?zip=${zip}`);
+  }
+
+  // --- Legacy ---
 
   async lookupProperty(address: string): Promise<Partial<AnalysisInput>> {
     return this.request(`/lookup?address=${encodeURIComponent(address)}`);
