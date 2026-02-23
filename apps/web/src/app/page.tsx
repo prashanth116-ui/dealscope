@@ -1,8 +1,22 @@
+"use client";
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/lib/auth-context";
+
 export default function HomePage() {
+  const { isAuthenticated, isLoading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isLoading) {
+      router.replace(isAuthenticated ? "/dashboard" : "/login");
+    }
+  }, [isAuthenticated, isLoading, router]);
+
   return (
-    <main style={{ fontFamily: "system-ui, sans-serif", padding: 40 }}>
-      <h1 style={{ color: "#003366" }}>DealScope</h1>
-      <p>Commercial property analysis — coming soon.</p>
-    </main>
+    <div className="flex h-screen items-center justify-center">
+      <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+    </div>
   );
 }
