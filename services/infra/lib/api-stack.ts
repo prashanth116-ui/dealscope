@@ -2,6 +2,7 @@ import { Stack, StackProps, Duration, CfnOutput } from "aws-cdk-lib";
 import { Construct } from "constructs";
 import * as apigateway from "aws-cdk-lib/aws-apigateway";
 import * as lambda from "aws-cdk-lib/aws-lambda";
+import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
 import * as cognito from "aws-cdk-lib/aws-cognito";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as s3 from "aws-cdk-lib/aws-s3";
@@ -67,61 +68,70 @@ export class ApiStack extends Stack {
       STAGE: stage,
     };
 
-    const lambdaDir = path.join(__dirname, "..", "..", "api", "dist");
+    const handlersDir = path.join(__dirname, "../../api/src/handlers");
+
+    const bundling = {
+      externalModules: ["@aws-sdk/*"],
+    };
 
     // --- Lambda: analyze ---
-    const analyzeFn = new lambda.Function(this, "AnalyzeFn", {
+    const analyzeFn = new NodejsFunction(this, "AnalyzeFn", {
       functionName: `dealscope-analyze-${stage}`,
+      entry: path.join(handlersDir, "analyze.ts"),
+      handler: "handler",
       runtime: lambda.Runtime.NODEJS_20_X,
-      handler: "handlers/analyze.handler",
-      code: lambda.Code.fromAsset(lambdaDir),
       timeout: Duration.seconds(30),
       memorySize: 512,
       environment: commonEnv,
+      bundling,
     });
 
     // --- Lambda: lookup ---
-    const lookupFn = new lambda.Function(this, "LookupFn", {
+    const lookupFn = new NodejsFunction(this, "LookupFn", {
       functionName: `dealscope-lookup-${stage}`,
+      entry: path.join(handlersDir, "lookup.ts"),
+      handler: "handler",
       runtime: lambda.Runtime.NODEJS_20_X,
-      handler: "handlers/lookup.handler",
-      code: lambda.Code.fromAsset(lambdaDir),
       timeout: Duration.seconds(15),
       memorySize: 256,
       environment: commonEnv,
+      bundling,
     });
 
     // --- Lambda: data-fetch ---
-    const dataFetchFn = new lambda.Function(this, "DataFetchFn", {
+    const dataFetchFn = new NodejsFunction(this, "DataFetchFn", {
       functionName: `dealscope-data-fetch-${stage}`,
+      entry: path.join(handlersDir, "data-fetch.ts"),
+      handler: "handler",
       runtime: lambda.Runtime.NODEJS_20_X,
-      handler: "handlers/data-fetch.handler",
-      code: lambda.Code.fromAsset(lambdaDir),
       timeout: Duration.seconds(15),
       memorySize: 256,
       environment: commonEnv,
+      bundling,
     });
 
     // --- Lambda: upload-url (presigned S3 URLs) ---
-    const uploadUrlFn = new lambda.Function(this, "UploadUrlFn", {
+    const uploadUrlFn = new NodejsFunction(this, "UploadUrlFn", {
       functionName: `dealscope-upload-url-${stage}`,
+      entry: path.join(handlersDir, "upload-url.ts"),
+      handler: "handler",
       runtime: lambda.Runtime.NODEJS_20_X,
-      handler: "handlers/upload-url.handler",
-      code: lambda.Code.fromAsset(lambdaDir),
       timeout: Duration.seconds(10),
       memorySize: 256,
       environment: commonEnv,
+      bundling,
     });
 
     // --- Lambda: extract (PDF/document text extraction) ---
-    const extractFn = new lambda.Function(this, "ExtractFn", {
+    const extractFn = new NodejsFunction(this, "ExtractFn", {
       functionName: `dealscope-extract-${stage}`,
+      entry: path.join(handlersDir, "extract.ts"),
+      handler: "handler",
       runtime: lambda.Runtime.NODEJS_20_X,
-      handler: "handlers/extract.handler",
-      code: lambda.Code.fromAsset(lambdaDir),
       timeout: Duration.seconds(60),
       memorySize: 1024,
       environment: commonEnv,
+      bundling,
     });
 
     // --- DynamoDB permissions ---

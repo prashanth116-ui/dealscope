@@ -46,45 +46,34 @@ export class AuthStack extends Stack {
         stage === "prod" ? RemovalPolicy.RETAIN : RemovalPolicy.DESTROY,
     });
 
-    // --- Google Identity Provider ---
-    // Replace placeholder values with real credentials before deploying
-    const googleProvider = new cognito.UserPoolIdentityProviderGoogle(
-      this,
-      "GoogleProvider",
-      {
-        userPool: this.userPool,
-        clientId: "GOOGLE_CLIENT_ID_PLACEHOLDER",
-        clientSecretValue: SecretValue.unsafePlainText(
-          "GOOGLE_CLIENT_SECRET_PLACEHOLDER"
-        ),
-        scopes: ["profile", "email", "openid"],
-        attributeMapping: {
-          email: cognito.ProviderAttribute.GOOGLE_EMAIL,
-          givenName: cognito.ProviderAttribute.GOOGLE_GIVEN_NAME,
-          familyName: cognito.ProviderAttribute.GOOGLE_FAMILY_NAME,
-        },
-      }
-    );
-
-    // --- Apple Identity Provider ---
-    // Replace placeholder values with real credentials before deploying
-    const appleProvider = new cognito.UserPoolIdentityProviderApple(
-      this,
-      "AppleProvider",
-      {
-        userPool: this.userPool,
-        clientId: "APPLE_SERVICE_ID_PLACEHOLDER",
-        teamId: "APPLE_TEAM_ID_PLACEHOLDER",
-        keyId: "APPLE_KEY_ID_PLACEHOLDER",
-        privateKey: "APPLE_PRIVATE_KEY_PLACEHOLDER",
-        scopes: ["email", "name"],
-        attributeMapping: {
-          email: cognito.ProviderAttribute.APPLE_EMAIL,
-          givenName: cognito.ProviderAttribute.APPLE_FIRST_NAME,
-          familyName: cognito.ProviderAttribute.APPLE_LAST_NAME,
-        },
-      }
-    );
+    // --- Social Identity Providers ---
+    // TODO: Uncomment and replace placeholders when Google/Apple credentials are ready
+    //
+    // const googleProvider = new cognito.UserPoolIdentityProviderGoogle(this, "GoogleProvider", {
+    //   userPool: this.userPool,
+    //   clientId: "GOOGLE_CLIENT_ID",
+    //   clientSecretValue: SecretValue.unsafePlainText("GOOGLE_CLIENT_SECRET"),
+    //   scopes: ["profile", "email", "openid"],
+    //   attributeMapping: {
+    //     email: cognito.ProviderAttribute.GOOGLE_EMAIL,
+    //     givenName: cognito.ProviderAttribute.GOOGLE_GIVEN_NAME,
+    //     familyName: cognito.ProviderAttribute.GOOGLE_FAMILY_NAME,
+    //   },
+    // });
+    //
+    // const appleProvider = new cognito.UserPoolIdentityProviderApple(this, "AppleProvider", {
+    //   userPool: this.userPool,
+    //   clientId: "APPLE_SERVICE_ID",
+    //   teamId: "APPLE_TEAM_ID",
+    //   keyId: "APPLE_KEY_ID",
+    //   privateKey: "APPLE_PRIVATE_KEY",
+    //   scopes: ["email", "name"],
+    //   attributeMapping: {
+    //     email: cognito.ProviderAttribute.APPLE_EMAIL,
+    //     givenName: cognito.ProviderAttribute.APPLE_FIRST_NAME,
+    //     familyName: cognito.ProviderAttribute.APPLE_LAST_NAME,
+    //   },
+    // });
 
     // --- User Pool Domain (for hosted UI / OAuth redirects) ---
     this.userPool.addDomain("Domain", {
@@ -117,18 +106,12 @@ export class AuthStack extends Stack {
       },
       supportedIdentityProviders: [
         cognito.UserPoolClientIdentityProvider.COGNITO,
-        cognito.UserPoolClientIdentityProvider.GOOGLE,
-        cognito.UserPoolClientIdentityProvider.APPLE,
       ],
       accessTokenValidity: Duration.hours(1),
       idTokenValidity: Duration.hours(1),
       refreshTokenValidity: Duration.days(30),
       preventUserExistenceErrors: true,
     });
-
-    // Ensure providers are created before the client references them
-    this.userPoolClient.node.addDependency(googleProvider);
-    this.userPoolClient.node.addDependency(appleProvider);
 
     // --- Outputs ---
     new CfnOutput(this, "UserPoolId", {

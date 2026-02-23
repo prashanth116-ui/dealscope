@@ -6,7 +6,8 @@
     "build": "turbo build",
     "lint": "turbo lint",
     "test": "turbo test",
-    "clean": "turbo clean"
+    "clean": "turbo clean",
+    "deploy": "pnpm --filter dealscope-infra deploy"
   },
   "devDependencies": {
     "turbo": "^2.4.0",
